@@ -4,6 +4,9 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 
 import { PrismaClient } from '../../../generated/prisma-client/client';
 
@@ -14,23 +17,24 @@ export class PrismaService
 {
   private readonly logger = new Logger(PrismaService.name);
 
-  public async onModuleInit() {
-    try {
-      await this.$connect();
-      this.logger.log('Prisma Client connected');
-    } catch (error) {
-      this.logger.error('Error connecting Prisma Client', error);
-      throw error;
-    }
+  constructor(config: ConfigService) {
+    const connectionString = config.getOrThrow<string>('POSTGRES_URI');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+    const pool = new Pool({ connectionString });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+    const adapter = new PrismaPg(pool);
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    super({ adapter });
   }
 
-  public async onModuleDestroy() {
-    try {
-      await this.$disconnect();
-      this.logger.log('Prisma Client disconnected');
-    } catch (error) {
-      this.logger.error('Error disconnecting Prisma Client', error);
-      throw error;
-    }
+  async onModuleInit() {
+    await this.$connect();
+    this.logger.log('Prisma connected to the database');
+  }
+
+  async onModuleDestroy() {
+    await this.$disconnect();
+    this.logger.log('Prisma disconnected from the database');
   }
 }
