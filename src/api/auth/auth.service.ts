@@ -1,19 +1,29 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { hash } from 'argon2';
+import { hash, verify } from 'argon2';
+import { Request, Response } from 'express';
 import ms, { StringValue } from 'ms';
 
 import { User } from '../../../generated/prisma-client/client';
+import { isDev } from '../../common/utils/is-dev';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 
-import { RegisterDto } from './dto';
+import { LoginDto, RegisterDto } from './dto';
 import { JwtPayload } from './interfaces';
 
 @Injectable()
 export class AuthService {
   private readonly JWT_ACCESS_TOKEN_EXPIRES_IN: StringValue;
   private readonly JWT_REFRESH_TOKEN_EXPIRES_IN: StringValue;
+
+  private readonly COOKIE_DOMAIN: string;
+
   public constructor(
     private readonly prismaService: PrismaService,
     private readonly configService: ConfigService,
@@ -25,9 +35,10 @@ export class AuthService {
       this.configService.getOrThrow<StringValue>(
         'JWT_REFRESH_TOKEN_EXPIRES_IN',
       );
+    this.COOKIE_DOMAIN = this.configService.getOrThrow<string>('COOKIE_DOMAIN');
   }
 
-  public async register(dto: RegisterDto) {
+  public async register(res: Response, dto: RegisterDto) {
     const { name, email, password } = dto;
 
     const existingUser = await this.prismaService.user.findUnique({
@@ -48,7 +59,7 @@ export class AuthService {
       },
     });
 
-    return this.generateTokens(user);
+    return this.auth(res, user);
   }
 
   private async generateTokens(user: User) {
@@ -66,5 +77,72 @@ export class AuthService {
       expiresIn: this.JWT_REFRESH_TOKEN_EXPIRES_IN,
     });
     return { accessToken, refreshToken, refreshTokenExpiresInMs };
+  }
+
+  public async login(res: Response, dto: LoginDto) {
+    const { email, password } = dto;
+
+    const existingUser = await this.prismaService.user.findUnique({
+      where: { email },
+    });
+
+    if (!existingUser) {
+      throw new NotFoundException('Invalid credentials');
+    }
+
+    const isValidPassword = await verify(existingUser.password, password);
+
+    if (!isValidPassword) {
+      throw new NotFoundException('Invalid credentials');
+    }
+
+    return this.auth(res, existingUser);
+  }
+
+  public logout(res: Response) {
+    return this.setCookie(res, '', new Date(0));
+  }
+
+  private async auth(res: Response, user: User) {
+    const { accessToken, refreshToken, refreshTokenExpiresInMs } =
+      await this.generateTokens(user);
+
+    this.setCookie(res, refreshToken, refreshTokenExpiresInMs);
+    return { accessToken };
+  }
+
+  public async refreshTokens(req: Request, res: Response) {
+    if (!req.cookies || !req) {
+      throw new UnauthorizedException('No refresh token found');
+    }
+    const refreshToken: string = req.cookies['refreshToken'];
+
+    if (!refreshToken) {
+      throw new UnauthorizedException('No refresh token found');
+    }
+
+    const payload: JwtPayload = await this.jwtService.verifyAsync(refreshToken);
+
+    if (payload) {
+      const user = await this.prismaService.user.findUnique({
+        where: { id: payload.id },
+      });
+
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      return this.auth(res, user);
+    }
+  }
+
+  private setCookie(res: Response, value: string, expires: Date) {
+    res.cookie('refreshToken', value, {
+      httpOnly: true,
+      domain: this.COOKIE_DOMAIN,
+      expires,
+      secure: !isDev(this.configService),
+      sameSite: 'lax',
+    });
   }
 }

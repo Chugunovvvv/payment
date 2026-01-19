@@ -19,12 +19,11 @@ export class PrismaService
 
   constructor(config: ConfigService) {
     const connectionString = config.getOrThrow<string>('POSTGRES_URI');
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+
     const pool = new Pool({ connectionString });
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+
     const adapter = new PrismaPg(pool);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     super({ adapter });
   }
 
