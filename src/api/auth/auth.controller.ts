@@ -8,9 +8,10 @@ import {
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 
-import { AuthService } from './auth.service';
-import { LoginRequest, RegisterRequest } from './dto';
-import { AuthResponse } from './dto/auth.dto';
+import { AuthService } from './auth.service.js';
+import { AuthResponse } from './dto/auth.dto.js';
+import { LoginRequest } from './dto/login.dto.js';
+import { RegisterRequest } from './dto/register.dto.js';
 
 @ApiTags('Authentication')
 @ApiOkResponse({ description: 'Successful operation', type: AuthResponse })

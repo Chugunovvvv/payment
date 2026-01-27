@@ -10,12 +10,13 @@ import { hash, verify } from 'argon2';
 import { Request, Response } from 'express';
 import ms, { StringValue } from 'ms';
 
-import { User } from '../../../generated/prisma-client/client';
-import { isDev } from '../../common/utils/is-dev';
-import { PrismaService } from '../../infra/prisma/prisma.service';
+import { User } from '../../../generated/prisma/client.js';
+import { isDev } from '../../common/utils/is-dev.js';
+import { PrismaService } from '../../infra/prisma/prisma.service.js';
 
-import { LoginRequest, RegisterRequest } from './dto';
-import { JwtPayload } from './interfaces';
+import { LoginRequest } from './dto/login.dto.js';
+import { RegisterRequest } from './dto/register.dto.js';
+import { JwtPayload } from './interfaces/jwt.interface.js';
 
 @Injectable()
 export class AuthService {

@@ -1,10 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
 
-import type { User } from '../../../generated/prisma-client/browser';
-import { Authorized } from '../../common/decorators/authorized.decorator';
-import { Protected } from '../../common/decorators/protected.decorator';
+import type { User } from '../../../generated/prisma/client.js';
+import { Authorized } from '../../common/decorators/authorized.decorator.js';
+import { Protected } from '../../common/decorators/protected.decorator.js';
 
-import { UsersService } from './users.service';
+import { UsersService } from './users.service.js';
 
 @Controller('users')
 export class UsersController {

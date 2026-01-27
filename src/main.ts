@@ -4,9 +4,9 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 
-import { AppModule } from './app.module';
-import { getCorsConfig } from './config';
-import { getSwaggerConfig } from './config/swagger.config';
+import { AppModule } from './app.module.js';
+import { getCorsConfig } from './config/cors.config.js';
+import { getSwaggerConfig } from './config/swagger.config.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

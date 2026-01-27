@@ -1,2 +1,3 @@
-export * from './register.dto';
-export * from './login.dto';
+export * from './auth.dto.js';
+export * from './login.dto.js';
+export * from './register.dto.js';
