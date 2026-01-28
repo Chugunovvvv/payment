@@ -19,6 +19,8 @@ model User {
   email String @unique
   name String
   password String
+  subscription UserSubscription?
+  transactions Transaction[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -33,4 +35,69 @@ model Plan {
     yearlyPrice Int @map("yearly_price")
     features String[]
     isFeatured Boolean
+    subscription UserSubscription[]
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model UserSubscription {
+  id String @id @default(nanoid())
+  status SubscriptionStatus @default(PENDING_PAYMENT)
+  startDate DateTime? @map("start_date")
+  endDate DateTime? @map("end_date")
+
+  transactions Transaction[]
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  planId String 
+
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+model Transaction {
+    id String @id @default(nanoid())
+    amount Int
+    provider PaymentProvider
+    status TransactionStatus @default(PENDING)
+    externalId String? @map("external_id")
+    providedMethod Json? @map("provider_method")
+    billingPeriod BillingPeriod @map("billing_period")
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId String 
+
+    subscription UserSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+    subscriptionId String
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+
+}
+
+enum SubscriptionStatus {
+  PENDING_PAYMENT
+  ACTIVE
+  EXPIRED
+}
+
+enum PaymentProvider {
+  YOOKASSA
+  STRIPE
+  CRYPTOPRO
+  @@map("payment_providers")
+}
+enum TransactionStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELED
+  @@map("transaction_status")
+}
+enum BillingPeriod {
+  MONTHLY
+  YEARLY
 }
